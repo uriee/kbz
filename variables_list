@@ -1,0 +1,92 @@
+{
+        "PulseSupport" : {
+                "name" : "Pulse Support",
+                "value" : 50,
+                "desc" : "The precentage of members support nedded to execute a pulse.",
+                "proposals" : [ ]
+        },
+        "ProposalSupport" : {
+                "name" : "Proposal Support",
+                "value" : 15,
+                "desc" : "The precentage of members support nedded to assiged a Proposal to a pulse.",
+                "proposals" : [ ]
+        },
+        "CV" : {
+                "name" : "Change Variable",
+                "value" : 50,
+                "desc" : "The precentage of members vote nedded for changing a Variable value.",
+                "proposals" : [ ]
+        },
+        "ME" : {
+                "name" : "Membership",
+                "value" : 50,
+                "desc" : "The precentage of members vote nedded to grant Membership to a User.",
+                "proposals" : [ ]
+        },
+        "EM" : {
+                "name" : "End Membership",
+                "value" : 60,
+                "desc" : "The precentage of members vote nedded to Revoke Membership to a User.",
+                "proposals" : [ ]
+        },
+        "NS" : {
+                "name" : "New Statement",
+                "value" : 50,
+                "desc" : "The precentage of members vote nedded to accept a new Statement.",
+                "proposals" : [ ]
+        },
+        "CS" : {
+                "name" : "Cancel Statement",
+                "value" : 60,
+                "desc" : "The precentage of members vote nedded to Cancel Statement.",
+                "proposals" : [ ]
+        },
+        "NA" : {
+                "name" : "New Action",
+                "value" : 50,
+                "desc" : "The precentage of members vote nedded to accept a new Action.",
+                "proposals" : [ ]
+        },
+        "CA" : {
+                "name" : "Cancel Action",
+                "value" : 60,
+                "desc" : "The precentage of members vote nedded to Cancel Action.",
+                "proposals" : [ ]
+        },
+        "RS" : {
+                "name" : "Replace Statement",
+                "value" : 60,
+                "desc" : "The precentage of members vote nedded to Replace Statement.",
+                "proposals" : [ ]
+        },
+        "CM" : {
+                "name" : "Committee Member",
+                "value" : 50,
+                "desc" : "The precentage of members vote nedded for assigning a Member to an Action.",
+                "proposals" : [ ]
+        },
+        "OC" : {
+                "name" : "Out Of Committee",
+                "value" : 50,
+                "desc" : "The precentage of members vote nedded for throw a Member from an Action.",
+                "proposals" : [ ]
+        },
+        "MinCommittee" : {
+                "name" : "MinCommittee",
+                "value" : 2,
+                "desc" : "The Minimun size of an Action Committee.",
+                "proposals" : [ ]
+        },
+        "MaxAge" : {
+                "name" : "MaxAge",
+                "value" : 2,
+                "desc" : "The Maximim 'OutThere' Proposal Age (in Pulses).",
+                "proposals" : [ ]
+        },
+        "Name" : {
+                "name" : "Name",
+                "value" : "No Name",
+                "desc" : "The Communitty Name.",
+                "proposals" : [ ]
+        }
+}
