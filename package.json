@@ -13,8 +13,6 @@
     "mongojs": ">= 0.6.2",
     "passport": ">= 0.0.0",
     "mongodb": ">= 0.0.0",
-    "mocha": ">= 0.0.0",
-    "should": ">= 0.0.0",
     "passport-local": ">= 0.0.0"
   }
 }

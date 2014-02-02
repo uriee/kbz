@@ -255,7 +255,16 @@ app.get('/runit', function(req, res) {
   res.json({runit:'lunch'});
 });
 
+app.get('/next', function(req, res) {
+  logic.next();
+  res.json({runit:'lunch'});
+});
+
 app.get('/test', function(req, res) {
   logic.test();
   res.json({test:'lunch'});
+});
+
+app.get('/vars', function(req, res) {
+  res.json({vars:logic.vars});
 });

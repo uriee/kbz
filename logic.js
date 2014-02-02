@@ -140,7 +140,6 @@ var CreateMember = function(kbz_id,user_id,proposal_id){
   Member.type = 1;
   db_insert('members',Member)
   .then(function(member,err){
-    member = member[0];
     if (!member) throw ("no member");
     db_updateOne('users',member.user_id,{$push : {'memberships': member._id}})
     .then(db_updateOne('kbz', kbz_id,{$inc : {size : 1},$push : {'memberships' : member._id}}))
@@ -166,11 +165,10 @@ var CreateCommitteeMember = function(action_id,member_id,proposal_id){
   db_insert('members',Member)
   .then(Console)
   .then(function(member,err){
-    member = member[0];
     console.log("in CreateCommitteeMember",member);
     if (!member) throw ("CreateCommitteeMember: no member");
     db_updateOne('members',member_id,{$push : {"actions.live" : {"member_id" : member._id, "action_id" : action_id}}})
-    .then(db_updateOne('kbz',action_id,{$inc : {size : 1},$push : {"memberships" : member[0]._id}}))
+    .then(db_updateOne('kbz',action_id,{$inc : {size : 1},$push : {"memberships" : member._id}}))
     .then(function(data,err){
       if(err) d.reject(err);
       else d.resolve(data);
@@ -179,43 +177,6 @@ var CreateCommitteeMember = function(action_id,member_id,proposal_id){
   return d.promise;
 };
 
-var oldCreateKbz = function(parent_id,user_id,proposal_id,cb){
-  kbz = {};
-  kbz.parent_id = parent_id;
-  kbz.type = (parent_id ? 1 : 0);
-  kbz.actions = {live : [] , past : []};
-  kbz.status = 1;
-  kbz.size = 0;
-  kbz.pulsesupport = {members : [], count : 0};
-  kbz.pulses = {Assigned: 0 ,OnTheAir : 0,Past :[]};
-  kbz.proposals = (proposal_id ? [proposal_id] : []);
-  kbz.memberships = [];
-  db.variables.find({},function(err,ret){
-    if(err){
-      cb(err,0);
-    }
-    kbz.variables = ret[0];
-    db.kbz.insert(kbz, function(err,newkbz){
-      if(err) {
-        cb(err,0);
-      }
-      CreatePulse(newkbz[0]._id, function(err,pulse){
-        if(err) {
-          cb(err,0);
-        }
-        if(kbz.type === 0) {
-          CreateMember(newkbz[0]._id,user_id,0,function(err,member){
-           if(err) {
-             cb(err,0);
-           }
-           newkbz[0].member = member._id;
-          });
-        }
-      cb(err,newkbz[0]);
-      });
-    });
-  });
-};
 
 var CreateKbz = function(parent_id,user_id,proposal_id,cb){
   kbz = {};
@@ -225,7 +186,7 @@ var CreateKbz = function(parent_id,user_id,proposal_id,cb){
   kbz.status = 1;
   kbz.size = 0;
   kbz.pulsesupport = {members : [], count : 0};
-  kbz.pulses = {Assigned: [] ,OnTheAir : [],Past :[]};
+  kbz.pulses = {Assigned: null ,OnTheAir : null,Past :[]};
   kbz.proposals = (proposal_id ? [proposal_id] : []);
   kbz.memberships = [];
   db.variables.find({},function(err,ret){
@@ -237,23 +198,17 @@ var CreateKbz = function(parent_id,user_id,proposal_id,cb){
       if(err) {
         cb(err,0);
       }
-      CreatePulse(newkbz[0]._id, function(err,pulse){
+      CreatePulse(newkbz._id, function(err,pulse){
         if(err) {
           cb(err,0);
         }
         if(kbz.type === 0) {
-          CreateMember(newkbz[0]._id,user_id,0)
+          CreateMember(newkbz._id,user_id,0)
           .then(function(data,err){
-            newkbz[0].member = data._id;
+            newkbz.member = data._id;
           });
-  //        CreateMember(newkbz[0]._id,user_id,0,function(err,member){
-    //       if(err) {
-    //         cb(err,0);
-    //       }
-     //      newkbz[0].member = member._id;
-    //      });
         }
-      cb(err,newkbz[0]);
+      cb(err,newkbz);
       });
     });
   });
@@ -320,8 +275,7 @@ var CreateProposal = function(kbz_id,initiator,title,body,type,uniq,cb){
     if(err) {
       cb(err,0);
     }
-    proposal = proposal[0];
-   //initiator
+    //initiator
     db.members.update({"_id" : proposal.initiator},{$push : {"myproposals" : proposal._id}},function(err,ret){});
     //ReWrite
     if (proposal.member_id ){
@@ -416,21 +370,21 @@ var Support = function(kbz_id,proposal_id,member_id,cb) {
       cb(err,0);
     }
     if (ret){
-      db.kbz.find({"_id":kbz_id},{"variables.ProposalSupport.value" : 1,"size" : 1,"pulses.Assigned" : 1} , function(err,ret)  {
+      db.kbz.findOne({"_id" : kbz_id},{"variables.ProposalSupport.value" : 1,"size" : 1,"pulses.Assigned" : 1} , function(err,ret)  {
         if(err){
           cb(err,0);
         }
-        var pulse_id = ret[0].pulses.Assigned;
-        var ProposalSupport = ret[0].variables.ProposalSupport.value;
-        var size = ret[0].size;
-        db.proposals.find({"_id":proposal_id},function(err,ret){
+        var pulse_id = ret.pulses.Assigned;
+        var ProposalSupport = ret.variables.ProposalSupport.value;
+        var size = ret.size;
+        db.proposals.findOne({"_id":proposal_id},function(err,ret){
           if(err){
             cb(err,0);
           }
-          var current = ret[0].support.count;
-          var status = ret[0].status;
+          var current = ret.support.count;
+          var status = ret.status;
           if(status == "3" && (current/size*100 >= ProposalSupport)) {
-              AssignetoPulse(ret[0],pulse_id,cb);
+              AssignetoPulse(ret,pulse_id,cb);
           }
           else cb(err,ret);
         });
@@ -499,6 +453,7 @@ var Vote = function(proposal_id,member_id,vote,cb) {
 };
 
 var PulseOnTheAir = function(pulse_id,cb) {
+  console.log("zzzzzzzzzzzzzzzzzzzzzzzzz",pulse_id);
   db.pulses.findOne({"_id" : pulse_id},function(err,OnTheAir){
     OnTheAir.status = 3;
     if(err){
@@ -515,18 +470,20 @@ var PulseOnTheAir = function(pulse_id,cb) {
           if(proposal.votes.pro/(proposal.votes.against + proposal.votes.pro)*100 >= variable.value){ /*proposal had passed*/
             console.log("approved ",proposal.type);
             ExecuteVertic(proposal,function(err,ret){
+                        console.log("333:",OnTheAir.OnTheAir.length,OnTheAir.Rejected.length, OnTheAir.Approved.length);
               if (err) {
                 cb("Pulse: Proposal id:"+proposal._id+" failed to resolve",0);
               }
-              if(ret){
+         //     if(ret){
                 proposal.status = "7"; /* Approved */
                 OnTheAir.Approved.push(proposal._id);
                 db.proposals.save(proposal,function(err,ret){});
+                console.log("111:",OnTheAir.OnTheAir.length,OnTheAir.Rejected.length, OnTheAir.Approved.length);
                 if (OnTheAir.OnTheAir.length == OnTheAir.Rejected.length + OnTheAir.Approved.length) {
                   OnTheAir.OnTheAir = [];
                   db.pulses.save(OnTheAir,function(err,ret){});
                 }
-              }
+          //    }
             });
           }
             else { /*proposal had been rejected*/
@@ -534,6 +491,7 @@ var PulseOnTheAir = function(pulse_id,cb) {
               proposal.status = "8"; /* rejected */
               OnTheAir.Rejected.push(proposal._id);
               db.proposals.save(proposal,function(err,ret){});
+              console.log("222:",OnTheAir.OnTheAir.length,OnTheAir.Rejected.length, OnTheAir.Approved.length);
               if (OnTheAir.OnTheAir.length == OnTheAir.Rejected.length + OnTheAir.Approved.length) {
                 OnTheAir.OnTheAir = [];
                 db.pulses.save(OnTheAir,function(err,ret){});
@@ -554,7 +512,8 @@ var Pulse = function(kbz_id,cb){
     if(err) {
       cb(err,0);
     }
-    if (kbz.pulses.OnTheAir[0]) { //in case it is not the first kbz pulse
+    console.log("XXXXXXXXX:kbz.pulses.OnTheAir",kbz.pulses);
+    if (kbz.pulses.OnTheAir) { //in case it is not the first kbz pulse
       PulseOnTheAir(kbz.pulses.OnTheAir,function(err,ret){
         if(err){
           cb(err,0);
@@ -565,7 +524,7 @@ var Pulse = function(kbz_id,cb){
       if(err){
         cb("pulse: could not find Pulse Assigned "+err,0);
       }
-      db.proposals.update({"_id" : {$in : Assigned.Assigned}},{$set : {"status" : "6"}},function(err,ret){
+      db.proposals.update({"_id" : {$in : Assigned.Assigned}},{$set : {"status" : "6"}},{multi : true},function(err,ret){
         if(err){
           cb("coul'nt update proposal no:"+pr+" status", 0);
         }
@@ -686,7 +645,7 @@ var CreatePulse = function(kbz_id,cb){
     if(err) {
   cb(err,0);
     }
-    db.kbz.update({"_id":kbz_id},{$set : {"pulses.Assigned" :ret[0]._id}},function(err,ret){
+    db.kbz.update({"_id":kbz_id},{$set : {"pulses.Assigned" :ret._id}},function(err,ret){
       if(err){
         cb(err,0);
       }
@@ -785,8 +744,6 @@ var vars = {},
 ];
  
 
-function next() { run(cmds.splice(0,1));}
-
 function run(cmd) {
   console.log('executing: '+cmd[0]);
   eval(cmd[0]);
@@ -813,3 +770,12 @@ function runCommand(item) {
 exports.runit = function(){
   runCommand(cmds.shift());
 };
+
+exports.next = function(){
+  run(cmds.splice(0,1));
+};
+
+exports.vars = vars;
+  
+
+
