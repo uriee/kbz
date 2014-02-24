@@ -64,7 +64,7 @@ var db_findOne = function(collection,id,s){
       if(err) {console.log("db_findOne e:",collection,err); d.reject(err);}
       else d.resolve(data);
     });
-  };  
+  };
   return d.promise;
 };
 
@@ -111,7 +111,7 @@ var db_update = function(collection,where,update){
 };
 
 var db_insert = function(collection,obj){
-  console.log("db_insert:",collection); 
+  console.log("db_insert:",collection);
   if(collections.indexOf(collection) == -1) {throw "db_insert not a valid collection";}
   var d = Q.defer(),
       col = eval("db."+collection);
@@ -123,6 +123,7 @@ var db_insert = function(collection,obj){
 };
 
 var db_save = function(collection,obj){
+  console.log("db_save",collection);
   if(collections.indexOf(collection) == -1) {throw "db_save not a valid collection";}
   var d = Q.defer();
   col = eval("db."+collection);
@@ -488,36 +489,41 @@ var ExecuteOnTheAir = function(OnTheAir,variables){
   console.log("IN ExecuteOnTheAir",OnTheAir);
   var d = Q.defer(),
       proposal_id = OnTheAir.OnTheAir.splice(0,1);
-      console.log("IN ExecuteOnTheAir proposal:",proposal_id);
-  if (!proposal_id) return 1;
-  console.log("IN ExecuteOnTheAir proposal2:",proposal_id[0]);
-  db_findOne('proposals',proposal_id[0])
-  .then(function(proposal) {
-    console.log("IN ExecuteOnTheAir proposal3:",proposal);
-    type = proposal.type;
-    var variable = eval("variables."+type);
-    console.log("IN ExecuteOnTheAir proposal4:",proposal.votes,variable.value);
-    if(proposal.votes.pro/(proposal.votes.against + proposal.votes.pro)*100 >= variable.value){ /*proposal had passed*/
-      console.log("approved ",type);
-      ExecuteVertic(proposal)
-      .then(function(vertic){
-        console.log("IN ExecuteOnTheAir proposal5: REturned from EV",vertic);
-        proposal.status = "7"; /* Approved */
-        OnTheAir.Approved.push(proposal._id);
+      console.log("IN ExecuteOnTheAir proposal:",proposal_id,proposal_id==[],!proposal_id,!proposal_id[0],proposal_id===[],proposal_id==null);
+  if(!proposal_id[0]) {
+    console.log("ppPPppPPppPPppPP",proposal_id,proposal_id==[]);
+    d.resolve(OnTheAir);
+  }
+  else{
+    console.log("IN ExecuteOnTheAir proposal2:",proposal_id[0]);
+    db_findOne('proposals',proposal_id[0])
+    .then(function(proposal) {
+      console.log("IN ExecuteOnTheAir proposal3:",proposal);
+      type = proposal.type;
+      var variable = eval("variables."+type);
+      console.log("IN ExecuteOnTheAir proposal4:",proposal.votes,variable.value);
+      if(proposal.votes.pro/(proposal.votes.against + proposal.votes.pro)*100 >= variable.value){ /*proposal had passed*/
+        console.log("approved ",type);
+        ExecuteVertic(proposal)
+        .then(function(vertic){
+          console.log("IN ExecuteOnTheAir proposal5: REturned from EV",vertic);
+          proposal.status = "7"; /* Approved */
+          OnTheAir.Approved.push(proposal._id);
+          db_save('proposals',proposal).then(null,console.error);
+          //console.log("111:",OnTheAir.OnTheAir.length,OnTheAir.Rejected.length, OnTheAir.Approved.length);
+          d.resolve(ExecuteOnTheAir(OnTheAir,variables));
+        });
+      }
+      else { /*proposal had been rejected*/
+        console.log("Rejected",proposal.type);
+        proposal.status = "8"; /* rejected */
+        OnTheAir.Rejected.push(proposal._id);
         db_save('proposals',proposal).then(null,console.error);
-        console.log("111:",OnTheAir.OnTheAir.length,OnTheAir.Rejected.length, OnTheAir.Approved.length);
+        //console.log("222:",OnTheAir.OnTheAir.length,OnTheAir.Rejected.length, OnTheAir.Approved.length);
         d.resolve(ExecuteOnTheAir(OnTheAir,variables));
-      });
-    }
-    else { /*proposal had been rejected*/
-      console.log("Rejected",proposal.type);
-      proposal.status = "8"; /* rejected */
-      OnTheAir.Rejected.push(proposal._id);
-      db.proposals.save('proposals',proposal).then(null,console.error);
-      console.log("222:",OnTheAir.OnTheAir.length,OnTheAir.Rejected.length, OnTheAir.Approved.length);
-      d.resolve(ExecuteOnTheAir(OnTheAir,variables));
-    }
-  });
+      }
+    });
+  }
   return d.promise;
 };
 
@@ -535,7 +541,8 @@ var PulseOnTheAir = function(pulse_id,variables) {
         //db_find('proposals',{$in : OnTheAir.OnTheAir})
     //  .then(function(proposals){
     ExecuteOnTheAir(OnTheAir,variables)
-    .then(function(data) {
+    .then(function(OnTheAir) {
+      console.log("IN PulseOnTheAir return ontheair: ",OnTheAir);
       OnTheAir.OnTheAir = [];
       db_save('pulses',OnTheAir).then(d.resolve);
     });
@@ -658,6 +665,8 @@ var vars = {},
 "db_find('users',{}).then(function(users,err){vars.users = users;throw err;});",
 "CreateKbz(0,vars.users[0]._id,0).then(function(kbz,err){vars.kbz = kbz;throw err;});",
 "CreateProposal(vars.kbz._id,vars.users[1]._id,'i want in','let me in','ME',{member : 0}).then(function(p1){vars.p1 = p1}).fail(console.log);",
+"CreateProposal(vars.kbz._id,vars.users[2]._id,'i want in too','let me in too','ME',{member : 0}).then(function(p11){vars.p11 = p11}).fail(console.log);",
+"CreateProposal(vars.kbz._id,vars.users[3]._id,'i want in toooo','let me in toooo','ME',{member : 0}).then(function(p14){vars.p14 = p14}).fail(console.log);",
 "db_find('members',{}).then(function(members,err){vars.members = members;throw err;});",
 "CreateProposal(vars.kbz._id,vars.members[0]._id,'our moto','Just kidding','NS',{statement : 'Dont Be Evil!!'}).then(function(p2){vars.p2 = p2}).fail(console.log);",
 "CreateProposal(vars.kbz._id,vars.members[0]._id,'Change Name','WE need to change','CV',{variable : 'Name' , newvalue : 'our House'}).then(function(p3){vars.p3 = p3}).fail(console.log);",
@@ -666,12 +675,29 @@ var vars = {},
 "Support(vars.kbz._id,vars.p2._id,vars.members[0]._id).then(console.log, console.error);",
 "Support(vars.kbz._id,vars.p3._id,vars.members[0]._id).then(console.log, console.error);",
 "Support(vars.kbz._id,vars.p4._id,vars.members[0]._id).then(console.log, console.error);",
+"Support(vars.kbz._id,vars.p11._id,vars.members[0]._id).then(console.log, console.error);",
+"Support(vars.kbz._id,vars.p14._id,vars.members[0]._id).then(console.log, console.error);",
 "PulseSupport(vars.kbz._id,vars.members[0]._id).then(console.log, console.error);",
-"Vote(vars.p1._id,vars.members[0]._id,1,function(err,ret){});",
-"Vote(vars.p2._id,vars.members[0]._id,1,function(err,ret){});",
-"Vote(vars.p3._id,vars.members[0]._id,1,function(err,ret){});",
-"Vote(vars.p4._id,vars.members[0]._id,1,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.members[0]._id,function(err,ret){});"
+"Vote(vars.p1._id,vars.members[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p2._id,vars.members[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p3._id,vars.members[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p4._id,vars.members[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p11._id,vars.members[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p14._id,vars.members[0]._id,0).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.members[0]._id,function(err,ret){});",
+/*
+"db_find('members',{}).then(function(members){vars.m = members;console.log('mmmmmmmmm',m);});",
+"db_findOne('kbz',vars.kbz._id).then(function(d){vars.kbz = d});",
+"db_find('statements',{}).then(function(d){vars.statement = d[0]});",
+"CreateProposal(vars.kbz._id,vars.m[1]._id,'i want in action','let me in actionn','CM',{member_id :vars.m[1]._id , action_id : vars.kbz.actions.live[0]._id}).then(function(d){vars.p5 = d});",
+"CreateProposal(vars.kbz._id,vars.m[2]._id,'i want in action too','let me in actionn too','CM',{member_id :vars.m[2]._id , action_id : vars.kbz.actions.live[0]._id}).then(function(d){vars.p12 = d});",
+"CreateProposal(vars.kbz._id,vars.m[1]._id,'Evil is good','dont tell us what we are not!','RS',{statement_id : vars.statement._id , newstatement : 'we are Evil!',oldstatement : vars.statement.statement}).then(function(d){vars.p6 = d});",
+"Support(vars.kbz._id,vars.p5._id,vars.m[0]._id).then(console.log, console.error);",
+"Support(vars.kbz._id,vars.p12._id,vars.m[2]._id).then(console.log, console.error);",
+"Support(vars.kbz._id,vars.p6._id,vars.m[1]._id).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[2]._id).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[1]._id).then(console.log, console.error);",
+*/
 ];
     cmds2 = [
 "db.users.find({},function(ret,users){vars.users = users;})",
@@ -700,9 +726,8 @@ var vars = {},
 "db.kbz.findOne({_id : vars.kbz._id},function(err,kbz) {vars.kbz = kbz});",
 "db.kbz.findOne({_id :{$ne : vars.kbz._id}},function(err,kbz) {vars.action_id = kbz._id});",
 "db.statements.findOne({},function(err,statement) {vars.statement = statement});",
-"console.log('-------------------vars.kbz.actions.live-----------------',vars.kbz.actions.live);",
 "CreateProposal(vars.kbz._id,vars.m[1]._id,'i want in action','let me in actionn','CM',{member_id :vars.m[1]._id , action_id : vars.kbz.actions.live[0]._id},function(err,p5){vars.p5 = p5});",
-"CreateProposal(vars.kbz._id,vars.m[2]._id,'i want in action too','let me in actionn too','CM',{member_id :vars.m[2]._id , action_id : vars.kbz.actions.live[0]._id},function(err,p12){vars.p12 = p12});",
+"CreateProposal(vars.kbz._id,vars.m[2]._-id,'i want in action too','let me in actionn too','CM',{member_id :vars.m[2]._id , action_id : vars.kbz.actions.live[0]._id},function(err,p12){vars.p12 = p12});",
 "CreateProposal(vars.kbz._id,vars.m[1]._id,'Evil is good','dont tell us what we are not!','RS',{statement_id : vars.statement._id , newstatement : 'we are Evil!',oldstatement : vars.statement.statement},function(err,p6){vars.p6 = p6});",
 "Support(vars.kbz._id,vars.p5._id,vars.m[0]._id,function(err,ret){});",
 "Support(vars.kbz._id,vars.p12._id,vars.m[2]._id,function(err,ret){});",
