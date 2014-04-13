@@ -744,7 +744,7 @@ function run(cmd) {
 function async(cmd, cb) {
   console.log('executing: '+cmd);
   eval(cmd);
-  setTimeout(function() { cb(); }, 150);
+  setTimeout(function() { cb(); }, 800);
 }
 // Final task (same in all the examples)
 function final() { console.log('Done'); }
@@ -772,47 +772,84 @@ exports.vars = vars;
 exports.init = function(){
   db.users.remove();
   db.variables.remove();
-  db.users.insert(
-	{
-        "provider" : "local",
-        "name" : "user1",
-        "email" : "user1@kbz.com",
-        "username" : "user1",
-        "hashed_password" : "bNH57QS/49ldiRj6Cp9Q5qdwjf4L7WIeIIrKIGwH+gIsP2oVNcnH5AfRS15+cIHMqQ4XKtcOyn3eio9CEZda0A==", //user1
-        "salt" : "DUIcBQeGmp+XyQ+ZdOk00w==",
-        "__v" : 0
-	});
-  db.users.insert(
-	{
-        "provider" : "local",
-        "name" : "user2",
-        "email" : "user2@kbz.com",
-        "username" : "user2",
-        "hashed_password" : "HWxmjSjPX8AOAuCmV9EjjS8GaAE66XrxzCo1P3DIL1CRmf5MY1apfD3y7UdBCphLk+pa3AhEp6rCMjt2DkL/PQ==", //user2
-        "salt" : "VU5J0KASsCOo0n3DfCLh2Q==",
-        "__v" : 0
-	});
-  db.users.insert(
-	{
-        "provider" : "local",
-        "name" : "user3",
-        "email" : "user3@kbz.com",
-        "username" : "user3",
-        "hashed_password" : "kMwe4FyQy2hZudqfxIbrCXfXtPkxtYTaXrt4jyO9RSp1SnDkRuUW3DrQyZszAxY8IS11ZWoAy05+t+Y3yQf33g==", //USER3
-        "salt" : "TNx+Z0Zuuqj4t170MKEnyA==",
-        "__v" : 0
-	});
-  db.users.insert(
-	{
-        "provider" : "local",
-        "name" : "user4",
-        "email" : "user4@kbz.com",
-        "username" : "user4",
-        "hashed_password" : "w1cuSesLcsIBBX/ls1wgEqLrx6vSzWFlr6vS9aPf29bWwpufPOkuJ/ZtV1tGR8kRB7nCnEef6Fo18I5yRnR1Ow==", //user4
-        "salt" : "SCe21KLZD7Ds9G5epFyx2Q==",
-        "__v" : 0
-	});
-
+    db.users.insert(
+     {
+      "_id": "cagKxnstgePZeZayC",
+      "createdAt": "2014-04-06T12:07:27.393Z",
+      "services": {
+        "password": {
+          "srp": {
+            "identity": "bmmmyiwRZhz349CZB",
+            "salt": "39gXBdi9d7sSmcaGa",
+            "verifier": "15dfdaa77bdd1684fa91be7f691ada1902c5e7063291bb691be61333364f85de4dfd66cb9fab4e6b9d27b485f31677ca7c10bdbca98e76e21585c5cfd87bbb44d8dbaf6a4ed715bc873c932061d2d9fde79fa02c2e64a43abcc8fc35f316bff7ffca0d7901c4a2665c6e77c28b872692d447b0a06ab37a88f9858462f3f570a8"
+          }
+        },
+        "resume": {
+          "loginTokens": [
+            {
+              "when": "2014-04-06T12:07:27.438Z",
+              "hashedToken": "oZj84hHpJobJF/47bzasw4dolbj2/9lHAg+BrmSX6LE="
+            }
+          ]
+        }
+      },
+      "username": "user12"
+    });
+    db.users.insert(
+    {
+      "_id": "wreXwy4x43w6jCoEB",
+      "createdAt": "2014-04-13T05:27:18.105Z",
+      "services": {
+        "password": {
+          "srp": {
+            "identity": "NymyC2ztffbEJrdwf",
+            "salt": "Hrkvm2H3Zzi6pJadb",
+            "verifier": "4f18b5fcffc277a01ac2b716b13bdbd629526b573bd9b0d728ade849aff1d653c248778b5489c7e2d272b248fb243cad81ad366d220464c2e34a98227631d73f4e8cd3509bbc3a9f9b2cc428e51edf77d9aa15ff37ece9983fab3e1eff69d681c74d15776e9233f7fc1ce43731a269fd82a017387a6baafbe1d85ab62c79d32a"
+          }
+        },
+        "resume": {
+          "loginTokens": []
+        }
+      },
+      "username": "user11"
+    });
+    db.users.insert(
+    {
+      "_id": "KxuWNEXdLMQweuJcS",
+      "createdAt": "2014-04-13T05:27:35.919Z",
+      "services": {
+        "password": {
+          "srp": {
+            "identity": "8a9tiZs7ajNEryboK",
+            "salt": "9Z643Yj6WCGotm5za",
+            "verifier": "86c9b857870e4fe67b52c9c8507f42f264579123573454fad330425f8b267196482e0681effe54acf85f8affc7c143d16bbe34516a81ad950594c66e90577ea8836b00daee278bd258948c674bf5d263c17f6b59990c46f00de40a31a06df34e23fb0b2cc69bc6228dbfcf47568bf513e9770713a846e21eb589623d232fcf8d"
+          }
+        },
+        "resume": {
+          "loginTokens": []
+        }
+      },
+      "username": "user13"
+    });
+    db.users.insert(
+    {
+      "_id": "i6JWSuDMLSd23hvPF",
+      "createdAt": "2014-04-13T05:27:58.164Z",
+      "services": {
+        "password": {
+          "srp": {
+            "identity": "ZrBxqpx9LrbpEwArx",
+            "salt": "Ck9uBEXQeGGzoFj8t",
+            "verifier": "e419f823e42d9a1c564a3ef8fd3ac67dd9a30298469ee0a1a7bcc1a9e8b2aca8b08df8c46e3c009e6cd5f15d1f74d3c163f9f8922ba715a749dede10fceac381852188675e0f0e09fff22c9404d85b9f1725dd329c72a207f29d4f068a4025b13456fd0d9e032f8c600751e95fd57f0df1327106c918b9658d1ec140ad4fc7b2"
+          }
+        },
+        "resume": {
+          "loginTokens": []
+        }
+      },
+      "username": "user14"
+    });
+   
   db_insert('variables',
             {
                     "PulseSupport" : {

@@ -8,12 +8,9 @@
   "dependencies": {
     "express": ">= 3.1.0",
     "q": "*",
-    "connect-flash": "*",
-    "jade": "*",
     "mongojs": ">= 0.6.2",
     "passport": ">= 0.0.0",
     "mongodb": ">= 0.0.0",
-    "passport-local": ">= 0.0.0"
   }
 }
 

@@ -11,7 +11,7 @@ var app = express();
   
 // configure Express
 app.configure(function() {
-  app.set('port', process.env.PORT || 3000);
+  app.set('port', process.env.PORT || 8888);
   app.use(express.favicon());
   app.set('views', __dirname + '/views');
   app.set('view engine', 'ejs');
@@ -35,10 +35,8 @@ var mongo = require('mongodb');
 
 var mongoUri = process.env.MONGOLAB_URI ||
   process.env.MONGOHQ_URL ||
-  'mongodb://localhost/kbzmain';
+    'mongodb://localhost:3001/meteor';
 
-
-var dbUrl = "kbzmain";
 var collections=["users","kbz","actions","members","pulses","proposals","statements","variables"];
 var db = require("mongojs").connect(mongoUri,collections);
 var ObjectId = db.ObjectId;
@@ -267,4 +265,9 @@ app.get('/test', function(req, res) {
 
 app.get('/vars', function(req, res) {
   res.json({vars:logic.vars});
+});
+
+app.get('/init', function(req, res) {
+  logic.init();
+  res.json({init:'lunch'});
 });
