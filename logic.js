@@ -1,6 +1,5 @@
-var mongo = require('mongodb'),
-    mongoUri = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/kbzmain',
-    dbUrl = "kbzmain",
+var mongoUri = 'mongodb://localhost:3001/meteor',
+   //mongoUri = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/kbzmain',
     collections=["users","kbz","actions","members","pulses","proposals","statements","variables"],
     db = require("mongojs").connect(mongoUri,collections),
     ObjectId = db.ObjectId,
@@ -29,65 +28,58 @@ var mongo = require('mongodb'),
     };
 // sudo mongod --profile=1 --slowms=1 --fork --logpath /var/log/mongodb/mongodb.log --logappend
 //db.setProfilingLevel(2,0,1)
-/*-------Declare Promisses------*/
-exports.test = function(){
-db_findOne('kbz',ObjectId("52e49f04f3ac8acf1d000001"),{})
-  .then(function(kbz,err) {
-    db_findOne('members',kbz.memberships[0],{})
-  .then(console.log,console.error);
-    });
-};
+/*-------DB Functions------*/
 
 var db_find = function(collection,where,s){
-  if (collections.indexOf(collection) == -1) {throw "db_find not a valid collection";}
+  console.log("In Find :",collection,where,s);
+  if (collections.indexOf(collection) === -1) {throw "db_find not a valid collection";}
   var d = Q.defer(),
       select = {};
   if(s) {select = s;}
   col = eval("db."+collection);
-  col.find(where,function(err,data) {
+  col.find(where,select,function(err,data) {
+    console.log("Find output:",collection,data);
     if(err) {console.log("db_find e:",collection,err); d.reject(err);}
     else d.resolve(data);
   });
   return d.promise;
 };
 
-var db_findOne = function(collection,id,s){
-  console.log("In FindOne :",collection,id);
-  if(collections.indexOf(collection) == -1) {throw "db_findOne not a valid collection";}
+var db_findOne = function(collection,id,select){
+  console.log("In FindOne :",collection,id,collections.indexOf(collection) === -1);
+  if(collections.indexOf(collection) === -1) {d.reject("db_findOne not a valid collection:"+collection);}
   var d = Q.defer(),
-      select = {};
-  if(s) {select = s;}
   col = eval("db."+collection);
   if(id) {
-    col.findOne({'_id' : id},select,function(err,data) {
+    col.findOne({'_id' : id},select || {},function(err,data) {
           console.log("findone output:",collection,data._id);
       if(err) {console.log("db_findOne e:",collection,err); d.reject(err);}
       else d.resolve(data);
     });
-  };
+  }
   return d.promise;
 };
 
 var db_findAndModify = function(collection,query,update){
   console.log("In db_findAndModify",collection,query,update);
-  if(collections.indexOf(collection) == -1) {throw "db_findAndModify not a valid collection";}
+  if(collections.indexOf(collection) == -1) {throw new Error("db_findAndModify not a valid collection");}
   var d = Q.defer();
   col = eval("db."+collection);
   col.findAndModify({
     query : query ,
     update : update ,
     new : true },function(err,data) {
-      console.log("In db_findAndModify out put",collection,err,data._id);
-      if(err) d.reject(err);
+      console.log("In db_findAndModify output:",collection,err,data._id);
+      if(err) throw new Error("db_findAndModify:"+query+":"+update);
       else d.resolve(data);
   });
   return d.promise;
 };
 
 var db_updateOne = function(collection,id,update){
-  console.log("db_updateOne:",collection,id,update);
-  if(collections.indexOf(collection) == -1) {throw "db_ipdateone not a valid collection"+id;}
   var d = Q.defer();
+  console.log("db_updateOne:",collection,id,update);
+  if(collections.indexOf(collection) === -1 || !id || !update) console.log("db_updateOne: wrong parameters",collection,id,update);
   col = eval("db."+collection);
   col.update({'_id' : id},update,{multi : false},function(err,data) {
     console.log("db_updateOne data:",collection,id,data,err);
@@ -99,7 +91,7 @@ var db_updateOne = function(collection,id,update){
 
 var db_update = function(collection,where,update){
   console.log("db_update:",collection,where,update);
-  if(collections.indexOf(collection) == -1) {throw "db_update not a valid collection";}
+  if(collections.indexOf(collection) == -1) {throw new Error("db_update not a valid collection");}
   var d = Q.defer();
   col = eval("db."+collection);
   col.update(where,update,{multi : true},function(err,data) {
@@ -112,7 +104,7 @@ var db_update = function(collection,where,update){
 
 var db_insert = function(collection,obj){
   console.log("db_insert:",collection);
-  if(collections.indexOf(collection) == -1) {throw "db_insert not a valid collection";}
+  if(collections.indexOf(collection) == -1) {throw new error("db_insert not a valid collection");}
   var d = Q.defer(),
       col = eval("db."+collection);
   col.insert(obj,function(err,data) {
@@ -124,7 +116,7 @@ var db_insert = function(collection,obj){
 
 var db_save = function(collection,obj){
   console.log("db_save",collection);
-  if(collections.indexOf(collection) == -1) {throw "db_save not a valid collection";}
+  if(collections.indexOf(collection) == -1) {throw new error("db_save not a valid collection");}
   var d = Q.defer();
   col = eval("db."+collection);
   col.save(obj,function(err,data) {
@@ -134,11 +126,49 @@ var db_save = function(collection,obj){
   return d.promise;
 };
 
+/*---GET functions------*/
 
+// Set the Mobj (Membership Obj) in users on LogIn;
+exports.SetKbzs = function(user_id){
+  console.log("iN SetKbzs:",user_id);
+  var d = Q.defer();
+  if(!user_id) return d.promise;
+  db_findOne('users',user_id,{memberships : 1})
+  .then(function(user) {
+    user.memberships = user.memberships || {};
+    console.log("USER:",user);
+    if(user.membership == {}) d.reject({});
+    db_find('members',{_id : {$in : user.memberships}},{kbz_id : 1 })
+    .then(function(memberships){
+      console.log("memberships:",memberships);
+      kbzarr = [];
+      Mobj =[];
+      memberships.forEach(function(membership) {
+        console.log("xxx:",kbzarr,membership);
+        kbzarr.push(membership.kbz_id);
+        Mobj.push(membership);
+      });
+      console.log("kbzarr: ",kbzarr);
+      db_find('kbz',{_id : {$in : kbzarr}},{"variables.Name.value" : 1})
+      .then(function(kbz) {
+        if (!kbz[0]) {
+          d.reject({err : "kokoko"});
+        }
+        else {
+          for(i=0;i<Mobj.length;i++) {Mobj[i].kbz_name = kbz[i].variables.Name.value;}
+          console.log("HHHHH", Mobj);
+          db_updateOne('users',user_id,{$set : {'Mobj' : Mobj}}).then(d.resolve);
+        }
+      });
+    });
+  });
+  return d.promise;
+};
 
-/*---FUNCTIONS------*/
+/*---LOGIC FUNCTIONS------*/
 
 var CreateStatement = function(kbz_id,value,proposal_id){
+  if(!kbz_id || !value || !proposal_id) console.error("CreateStatement parameters are not soficient");
   var d = Q.defer(),
       statement = {};
   statement.kbz_id = kbz_id;
@@ -187,7 +217,7 @@ var CreateMember = function(kbz_id,user_id,proposal_id){
   Member.type = 1;
   db_insert('members',Member)
   .then(function(member,err){
-    if (!member) throw ("no member");
+    if (!member) d.reject(new Error("no member"));
     db_updateOne('users',member.user_id,{$push : {'memberships': member._id}})
     .then(db_updateOne('kbz', kbz_id,{$inc : {size : 1},$push : {'memberships' : member._id}}))
     .then(function(data,err){
@@ -199,7 +229,8 @@ var CreateMember = function(kbz_id,user_id,proposal_id){
 };
 
 var CreateCommitteeMember = function(action_id,member_id,proposal_id){
-  if (!action_id) {}//throw "no action_id";
+  console.log("In CreateCommitteeMember: ",action_id,member_id,proposal_id,!action_id);
+  if (!action_id) throw new Error("CreateCommitteeMember: no action");
     var d = Q.defer(),
       Member = {};
   Member.kbz_id = action_id;
@@ -209,9 +240,8 @@ var CreateCommitteeMember = function(action_id,member_id,proposal_id){
   Member.type = 2;
   Member.proposals = [proposal_id];
   db_insert('members',Member)
-  .then(Console)
-  .then(function(member,err){
-    if (!member) throw ("CreateCommitteeMember: no member");
+  .then(function(member){
+    if (!member) throw new Error("CreateCommitteeMember: no member");
     db_updateOne('members',member_id,{$push : {"actions.live" : {"member_id" : member._id, "action_id" : action_id}}})
     .then(db_updateOne('kbz',action_id,{$inc : {size : 1},$push : {"memberships" : member._id}}))
     .then(function(data,err){
@@ -314,7 +344,7 @@ var CreateProposal = function(kbz_id,initiator,title,body,type,uniq){
   db_insert('proposals',Proposal)
   .then(function(proposal,err){
       //console.log("in CreateProposal2",proposal,err);
-    if (!(type=="ME")){      
+    if (!(type=="ME")){
       db_updateOne('members',proposal.initiator,{$push : {"myproposals" : proposal._id}});
     }
 
@@ -344,6 +374,7 @@ var CreateProposal = function(kbz_id,initiator,title,body,type,uniq){
 };
 
 var RemoveMember = function(member_id,level){
+  console.log("In RemoveMember:",member_id,level);
   var d = Q.defer();
   db_findAndModify('members' ,{'_id' : member_id} ,{$set: {"status": 0}})
   .then(function(member,err){
@@ -373,6 +404,7 @@ var RemoveMember = function(member_id,level){
       .then(null,console.error);
     });
     console.log("exit recursion",level);
+    d.resolve(member);
   });
   return d.promise;
 };
@@ -489,11 +521,8 @@ var ExecuteOnTheAir = function(OnTheAir,variables){
   console.log("IN ExecuteOnTheAir",OnTheAir);
   var d = Q.defer(),
       proposal_id = OnTheAir.OnTheAir.splice(0,1);
-      console.log("IN ExecuteOnTheAir proposal:",proposal_id,proposal_id==[],!proposal_id,!proposal_id[0],proposal_id===[],proposal_id==null);
-  if(!proposal_id[0]) {
-    console.log("ppPPppPPppPPppPP",proposal_id,proposal_id==[]);
-    d.resolve(OnTheAir);
-  }
+      console.log("IN ExecuteOnTheAir proposal:",proposal_id,!proposal_id[0]);
+  if(!proposal_id[0]) d.resolve(OnTheAir); //All OnTheAir Proposals were Proccessed.
   else{
     console.log("IN ExecuteOnTheAir proposal2:",proposal_id[0]);
     db_findOne('proposals',proposal_id[0])
@@ -549,20 +578,6 @@ var PulseOnTheAir = function(pulse_id,variables) {
   });
   return d.promise;
 };
-
-/*
-var Age = function(kbz_id,maxage){
-  console.log("IN Age",kbz_id,maxage);
-  var d = Q.defer();
-  db_update('proposals',{"kbz_id" : kbz_id, "status" : "3", "age" : {$gt : maxage}},{$set :{"status": "5"}})
-  .then(function(data,err){
-    if(data.n) {}
-    db_update('proposals',{"kbz_id" : kbz_id, status : "3"},{$inc : {"age" :1}})
-    .then(d.resolve(data));
-  });
-  return d.promise;
-};
-*/
 
 
 var Age = function(kbz_id,maxage){
@@ -620,12 +635,12 @@ var ExecuteVertic = function(proposal){
     .then(d.resolve);
   }
   if(proposal.type == "NS"){
-    CreateStatement(proposal.kbz_id,proposal.statement,proposal._id)//,function(err,ret){
-    .then(d.resolve);
+    CreateStatement(proposal.kbz_id,proposal.statement,proposal._id)
+    .then(d.resolve).fail(console.log);
   }
   if(proposal.type == "CS"){
     db_updateOne('statements',proposal.statement_id,{$set : {"status" : 0}})
-    .then(d.resolve);
+    .then(d.resolve).fail(console.log);
   }
   if(proposal.type == "RS"){
     db_updateOne('statements',proposal.statement_id,{$set : {"statement" : proposal.newstatement}})
@@ -685,83 +700,41 @@ var vars = {},
 "Vote(vars.p11._id,vars.members[0]._id,1).then(console.log, console.error);",
 "Vote(vars.p14._id,vars.members[0]._id,0).then(console.log, console.error);",
 "PulseSupport(vars.kbz._id,vars.members[0]._id,function(err,ret){});",
-/*
 "db_find('members',{}).then(function(members){vars.m = members;console.log('mmmmmmmmm',m);});",
-"db_findOne('kbz',vars.kbz._id).then(function(d){vars.kbz = d});",
+"db_findOne('kbz',vars.kbz._id).then(function(d){vars.kbz = d})",
 "db_find('statements',{}).then(function(d){vars.statement = d[0]});",
-"CreateProposal(vars.kbz._id,vars.m[1]._id,'i want in action','let me in actionn','CM',{member_id :vars.m[1]._id , action_id : vars.kbz.actions.live[0]._id}).then(function(d){vars.p5 = d});",
-"CreateProposal(vars.kbz._id,vars.m[2]._id,'i want in action too','let me in actionn too','CM',{member_id :vars.m[2]._id , action_id : vars.kbz.actions.live[0]._id}).then(function(d){vars.p12 = d});",
+"CreateProposal(vars.kbz._id,vars.m[1]._id,'i want in action','let me in actionn','CM',{member_id :vars.m[1]._id , action_id : vars.kbz.actions.live[0]}).then(function(d){vars.p5 = d});",
+"CreateProposal(vars.kbz._id,vars.m[2]._id,'i want in action too','let me in actionn too','CM',{member_id :vars.m[2]._id , action_id : vars.kbz.actions.live[0]}).then(function(d){vars.p12 = d});",
 "CreateProposal(vars.kbz._id,vars.m[1]._id,'Evil is good','dont tell us what we are not!','RS',{statement_id : vars.statement._id , newstatement : 'we are Evil!',oldstatement : vars.statement.statement}).then(function(d){vars.p6 = d});",
 "Support(vars.kbz._id,vars.p5._id,vars.m[0]._id).then(console.log, console.error);",
 "Support(vars.kbz._id,vars.p12._id,vars.m[2]._id).then(console.log, console.error);",
 "Support(vars.kbz._id,vars.p6._id,vars.m[1]._id).then(console.log, console.error);",
 "PulseSupport(vars.kbz._id,vars.m[2]._id).then(console.log, console.error);",
 "PulseSupport(vars.kbz._id,vars.m[1]._id).then(console.log, console.error);",
-*/
+"CreateProposal(vars.kbz._id,vars.m[2]._id,'i want out','let me out','EM',{member_id : vars.m[1]._id}).then(function(p7){vars.p7 = p7}).fail(console.log);",
+"CreateProposal(vars.kbz._id,vars.m[1]._id,'cancel it!','Cancel it now!!','CS',{statement_id : vars.statement._id}).then(function(p8){vars.p8 = p8}).fail(console.log);",
+"Vote(vars.p5._id,vars.m[1]._id,1).then(console.log, console.error);",
+"Vote(vars.p12._id,vars.m[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p5._id,vars.m[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p6._id,vars.m[1]._id,1).then(console.log, console.error);",
+"Support(vars.kbz._id,vars.p7._id,vars.m[1]._id).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[2]._id).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[1]._id).then(console.log, console.error);",
+"Support(vars.kbz._id,vars.p8._id,vars.m[1]._id).then(console.log, console.error);",
+"Vote(vars.p7._id,vars.m[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p8._id,vars.m[1]._id,1).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[2]._id).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[1]._id).then(console.log, console.error);",
+"db_find('members',{'type' : 2 , 'status' : 1}).then(function(members){vars.m2 = members;});",
+"CreateProposal(vars.kbz._id,vars.m[0]._id,'throw out','let him out','OC',{member_id : vars.m2[0]._id}).then(function(p13){vars.p13 = p13}).fail(console.log);",
+"CreateProposal(vars.kbz._id,vars.m[0]._id,'End Action','let it end','CA',{action_id : vars.kbz.actions.live[0]}).then(function(p15){vars.p15 = p15}).fail(console.log);",
+"Support(vars.kbz._id,vars.p15._id,vars.m[0]._id).then(console.log, console.error);",
+"Support(vars.kbz._id,vars.p13._id,vars.m[0]._id).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[0]._id).then(console.log, console.error);",
+"Vote(vars.p15._id,vars.m[0]._id,1).then(console.log, console.error);",
+"Vote(vars.p13._id,vars.m[0]._id,1).then(console.log, console.error);",
+"PulseSupport(vars.kbz._id,vars.m[0]._id).then(console.log, console.error);",
 ];
-    cmds2 = [
-"db.users.find({},function(ret,users){vars.users = users;})",
-"CreateKbz(0,vars.users[0]._id,0function(err,kbz) {vars.kbz = kbz});",
-"console.log('-------------------vars.kbz.pulses-----------------',vars.kbz.pulses);",
-"CreateProposal(vars.kbz._id,vars.users[1]._id,'i want in','let me in','ME',{member : 0},function(err,p1){vars.p1 = p1});",
-"CreateProposal(vars.kbz._id,vars.users[2]._id,'i want in too','let me in too','ME',{member : 0},function(err,p11){vars.p11 = p11});",
-"CreateProposal(vars.kbz._id,vars.users[3]._id,'i want in toooo','let me in toooo','ME',{member : 0},function(err,p14){vars.p14 = p14});",
-"CreateProposal(vars.kbz._id,vars.kbz.member,'our moto','Just kidding','NS',{statement : 'Dont Be Evil!!'},function(err,p2){vars.p2 = p2});",
-"CreateProposal(vars.kbz._id,vars.kbz.member,'Change Name','WE need to change','CV',{variable : 'Name' , newvalue : 'our House'},function(err,p3){vars.p3 = p3});",
-"CreateProposal(vars.kbz._id,vars.kbz.member,'new action','new action','NA',{actionname : 'TheAction'},function(err,p4){vars.p4 = p4});",
-"Support(vars.kbz._id,vars.p11._id,vars.kbz.member,function(err,ret){});",
-"Support(vars.kbz._id,vars.p1._id,vars.kbz.member,function(err,ret){});",
-"Support(vars.kbz._id,vars.p2._id,vars.kbz.member,function(err,ret){});",
-"Support(vars.kbz._id,vars.p3._id,vars.kbz.member,function(err,ret){});",
-"Support(vars.kbz._id,vars.p4._id,vars.kbz.member,function(err,ret){});",
-"Support(vars.kbz._id,vars.p14._id,vars.kbz.member,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.kbz.member,function(err,ret){});",
-"Vote(vars.p11._id,vars.kbz.member,1,function(err,ret){});",
-"Vote(vars.p1._id,vars.kbz.member,1,function(err,ret){});",
-"Vote(vars.p2._id,vars.kbz.member,1,function(err,ret){});",
-"Vote(vars.p3._id,vars.kbz.member,1,function(err,ret){});",
-"Vote(vars.p4._id,vars.kbz.member,1,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.kbz.member,function(err,ret){});",
-"db.members.find({},function(err,m) {vars.m = m});",
-"db.kbz.findOne({_id : vars.kbz._id},function(err,kbz) {vars.kbz = kbz});",
-"db.kbz.findOne({_id :{$ne : vars.kbz._id}},function(err,kbz) {vars.action_id = kbz._id});",
-"db.statements.findOne({},function(err,statement) {vars.statement = statement});",
-"CreateProposal(vars.kbz._id,vars.m[1]._id,'i want in action','let me in actionn','CM',{member_id :vars.m[1]._id , action_id : vars.kbz.actions.live[0]._id},function(err,p5){vars.p5 = p5});",
-"CreateProposal(vars.kbz._id,vars.m[2]._-id,'i want in action too','let me in actionn too','CM',{member_id :vars.m[2]._id , action_id : vars.kbz.actions.live[0]._id},function(err,p12){vars.p12 = p12});",
-"CreateProposal(vars.kbz._id,vars.m[1]._id,'Evil is good','dont tell us what we are not!','RS',{statement_id : vars.statement._id , newstatement : 'we are Evil!',oldstatement : vars.statement.statement},function(err,p6){vars.p6 = p6});",
-"Support(vars.kbz._id,vars.p5._id,vars.m[0]._id,function(err,ret){});",
-"Support(vars.kbz._id,vars.p12._id,vars.m[2]._id,function(err,ret){});",
-"Support(vars.kbz._id,vars.p6._id,vars.m[1]._id,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[1]._id,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[2]._id,function(err,ret){});",
-"CreateProposal(vars.kbz._id,vars.m[1]._id,'i want out','let me out','EM',{member_id : vars.m[1]._id},function(err,p7) {vars.p7 = p7});",
-"CreateProposal(vars.kbz._id,vars.m[0]._id,'cancel it!','Cancel it now!!','CS',{statement_id : vars.statement._id},function(err,p8) {vars.p8 = p8});",
-"Vote(vars.p5._id,vars.m[0]._id,1,function(err,ret){});",
-"Vote(vars.p12._id,vars.m[2]._id,1,function(err,ret){});",
-"Vote(vars.p5._id,vars.m[1]._id,1,function(err,ret){});",
-"Vote(vars.p6._id,vars.m[0]._id,1,function(err,ret){});",
-"Support(vars.kbz._id,vars.p7._id,vars.m[1]._id,function(err,ret){});",
-"Support(vars.kbz._id,vars.p8._id,vars.m[0]._id,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[0]._id,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[2]._id,function(err,ret){});",
-"Vote(vars.p7._id,vars.m[0]._id,1,function(err,ret){});",
-"Vote(vars.p8._id,vars.m[0]._id,1,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[0]._id,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[2]._id,function(err,ret){});",
-"db.members.find({'type' : 2 , 'status' : 1},function(err,m) {vars.m2 = m});",
-"CreateProposal(vars.kbz._id,vars.m[0]._id,'throw out','let him out','OC',{member_id : vars.m2[0]._id},function(err,p13) {vars.p13 = p13});",
-"console.log('actionID:',vars.action_id);",
-"CreateProposal(vars.kbz._id,vars.m[0]._id,'End Action','let it end','CA',{action_id : vars.action_id},function(err,p15) {vars.p15 = p15});",
-"Support(vars.kbz._id,vars.p13._id,vars.m[0]._id,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[0]._id,function(err,ret){});",
-"Support(vars.kbz._id,vars.p15._id,vars.m[0]._id,function(err,ret){});",
-"Vote(vars.p13._id,vars.m[0]._id,1,function(err,ret){});",
-"Vote(vars.p13._id,vars.m[2]._id,1,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[0]._id,function(err,ret){});",
-"Vote(vars.p15._id,vars.m[0]._id,1,function(err,ret){});",
-"PulseSupport(vars.kbz._id,vars.m[0]._id,function(err,ret){});",
-];
- 
 
 function run(cmd) {
   console.log('executing: '+cmd[0]);
@@ -771,7 +744,7 @@ function run(cmd) {
 function async(cmd, cb) {
   console.log('executing: '+cmd);
   eval(cmd);
-  setTimeout(function() { cb(); }, 350);
+  setTimeout(function() { cb(); }, 150);
 }
 // Final task (same in all the examples)
 function final() { console.log('Done'); }
@@ -796,5 +769,144 @@ exports.next = function(){
 
 exports.vars = vars;
   
+exports.init = function(){
+  db.users.remove();
+  db.variables.remove();
+  db.users.insert(
+	{
+        "provider" : "local",
+        "name" : "user1",
+        "email" : "user1@kbz.com",
+        "username" : "user1",
+        "hashed_password" : "bNH57QS/49ldiRj6Cp9Q5qdwjf4L7WIeIIrKIGwH+gIsP2oVNcnH5AfRS15+cIHMqQ4XKtcOyn3eio9CEZda0A==", //user1
+        "salt" : "DUIcBQeGmp+XyQ+ZdOk00w==",
+        "__v" : 0
+	});
+  db.users.insert(
+	{
+        "provider" : "local",
+        "name" : "user2",
+        "email" : "user2@kbz.com",
+        "username" : "user2",
+        "hashed_password" : "HWxmjSjPX8AOAuCmV9EjjS8GaAE66XrxzCo1P3DIL1CRmf5MY1apfD3y7UdBCphLk+pa3AhEp6rCMjt2DkL/PQ==", //user2
+        "salt" : "VU5J0KASsCOo0n3DfCLh2Q==",
+        "__v" : 0
+	});
+  db.users.insert(
+	{
+        "provider" : "local",
+        "name" : "user3",
+        "email" : "user3@kbz.com",
+        "username" : "user3",
+        "hashed_password" : "kMwe4FyQy2hZudqfxIbrCXfXtPkxtYTaXrt4jyO9RSp1SnDkRuUW3DrQyZszAxY8IS11ZWoAy05+t+Y3yQf33g==", //USER3
+        "salt" : "TNx+Z0Zuuqj4t170MKEnyA==",
+        "__v" : 0
+	});
+  db.users.insert(
+	{
+        "provider" : "local",
+        "name" : "user4",
+        "email" : "user4@kbz.com",
+        "username" : "user4",
+        "hashed_password" : "w1cuSesLcsIBBX/ls1wgEqLrx6vSzWFlr6vS9aPf29bWwpufPOkuJ/ZtV1tGR8kRB7nCnEef6Fo18I5yRnR1Ow==", //user4
+        "salt" : "SCe21KLZD7Ds9G5epFyx2Q==",
+        "__v" : 0
+	});
+
+  db_insert('variables',
+            {
+                    "PulseSupport" : {
+                            "name" : "Pulse Support",
+                            "value" : 50,
+                            "desc" : "The precentage of members support nedded to execute a pulse.",
+                            "proposals" : [ ]
+                    },
+                    "ProposalSupport" : {
+                            "name" : "Proposal Support",
+                            "value" : 15,
+                            "desc" : "The precentage of members support nedded to assiged a Proposal to a pulse.",
+                            "proposals" : [ ]
+                    },
+                    "CV" : {
+                            "name" : "Change Variable",
+                            "value" : 50,
+                            "desc" : "The precentage of members vote nedded for changing a Variable value.",
+                            "proposals" : [ ]
+                    },
+                    "ME" : {
+                            "name" : "Membership",
+                            "value" : 50,
+                            "desc" : "The precentage of members vote nedded to grant Membership to a User.",
+                            "proposals" : [ ]
+                    },
+                    "EM" : {
+                            "name" : "End Membership",
+                            "value" : 60,
+                            "desc" : "The precentage of members vote nedded to Revoke Membership to a User.",
+                            "proposals" : [ ]
+                    },
+                    "NS" : {
+                            "name" : "New Statement",
+                            "value" : 50,
+                            "desc" : "The precentage of members vote nedded to accept a new Statement.",
+                            "proposals" : [ ]
+                    },
+                    "CS" : {
+                            "name" : "Cancel Statement",
+                            "value" : 60,
+                            "desc" : "The precentage of members vote nedded to Cancel Statement.",
+                            "proposals" : [ ]
+                    },
+                    "NA" : {
+                            "name" : "New Action",
+                            "value" : 50,
+                            "desc" : "The precentage of members vote nedded to accept a new Action.",
+                            "proposals" : [ ]
+                    },
+                    "CA" : {
+                            "name" : "Cancel Action",
+                            "value" : 60,
+                            "desc" : "The precentage of members vote nedded to Cancel Action.",
+                            "proposals" : [ ]
+                    },
+                    "RS" : {
+                            "name" : "Replace Statement",
+                            "value" : 60,
+                            "desc" : "The precentage of members vote nedded to Replace Statement.",
+                            "proposals" : [ ]
+                    },
+                    "CM" : {
+                            "name" : "Committee Member",
+                            "value" : 50,
+                            "desc" : "The precentage of members vote nedded for assigning a Member to an Action.",
+                            "proposals" : [ ]
+                    },
+                    "OC" : {
+                            "name" : "Out Of Committee",
+                            "value" : 50,
+                            "desc" : "The precentage of members vote nedded for throw a Member from an Action.",
+                            "proposals" : [ ]
+                    },
+                    "MinCommittee" : {
+                            "name" : "MinCommittee",
+                            "value" : 2,
+                            "desc" : "The Minimun size of an Action Committee.",
+                            "proposals" : [ ]
+                    },
+                    "MaxAge" : {
+                            "name" : "MaxAge",
+                            "value" : 2,
+                            "desc" : "The Maximim 'OutThere' Proposal Age (in Pulses).",
+                            "proposals" : [ ]
+                    },
+                    "Name" : {
+                            "name" : "Name",
+                            "value" : "No Name",
+                            "desc" : "The Communitty Name.",
+                            "proposals" : [ ]
+                    }
+            }
+          );
+};
 
 
