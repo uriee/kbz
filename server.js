@@ -34,10 +34,8 @@ var mongo = require('mongodb');
 
 var mongoUri = process.env.MONGOLAB_URI ||
   process.env.MONGOHQ_URL ||
-  'mongodb://localhost/kbzmain';
+  'mongodb://localhost:3001/meteor';
 
-
-var dbUrl = "kbzmain";
 var collections=["users","kbz","actions","members","pulses","proposals","statements","variables"];
 var db = require("mongojs").connect(mongoUri,collections);
 var ObjectId = db.ObjectId;
