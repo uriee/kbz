@@ -851,92 +851,107 @@ exports.init = function(){
     });
    
   db_insert('variables',
-            {
+                        {
                     "PulseSupport" : {
+                            "type" : "PUS",
                             "name" : "Pulse Support",
                             "value" : 50,
                             "desc" : "The precentage of members support nedded to execute a pulse.",
                             "proposals" : [ ]
                     },
                     "ProposalSupport" : {
+                            "type" : "PS",
                             "name" : "Proposal Support",
                             "value" : 15,
                             "desc" : "The precentage of members support nedded to assiged a Proposal to a pulse.",
                             "proposals" : [ ]
                     },
                     "CV" : {
+                            "type" : "CV",
                             "name" : "Change Variable",
                             "value" : 50,
                             "desc" : "The precentage of members vote nedded for changing a Variable value.",
                             "proposals" : [ ]
                     },
                     "ME" : {
+                            "type" : "ME",
                             "name" : "Membership",
                             "value" : 50,
                             "desc" : "The precentage of members vote nedded to grant Membership to a User.",
                             "proposals" : [ ]
                     },
                     "EM" : {
+                            "type" : "EM",
                             "name" : "End Membership",
                             "value" : 60,
                             "desc" : "The precentage of members vote nedded to Revoke Membership to a User.",
                             "proposals" : [ ]
                     },
                     "NS" : {
+                            "type" : "NS",
                             "name" : "New Statement",
                             "value" : 50,
                             "desc" : "The precentage of members vote nedded to accept a new Statement.",
                             "proposals" : [ ]
                     },
                     "CS" : {
+                            "type" : "CS",
                             "name" : "Cancel Statement",
                             "value" : 60,
                             "desc" : "The precentage of members vote nedded to Cancel Statement.",
                             "proposals" : [ ]
                     },
                     "NA" : {
+                            "type" : "NA",
                             "name" : "New Action",
                             "value" : 50,
                             "desc" : "The precentage of members vote nedded to accept a new Action.",
                             "proposals" : [ ]
                     },
                     "CA" : {
+                            "type" : "CA",
                             "name" : "Cancel Action",
                             "value" : 60,
                             "desc" : "The precentage of members vote nedded to Cancel Action.",
                             "proposals" : [ ]
                     },
                     "RS" : {
+                            "type" : "RS",
                             "name" : "Replace Statement",
                             "value" : 60,
                             "desc" : "The precentage of members vote nedded to Replace Statement.",
                             "proposals" : [ ]
                     },
                     "CM" : {
+                            "type" : "CM",
                             "name" : "Committee Member",
                             "value" : 50,
                             "desc" : "The precentage of members vote nedded for assigning a Member to an Action.",
                             "proposals" : [ ]
                     },
                     "OC" : {
+                            "type" : "OC",
                             "name" : "Out Of Committee",
                             "value" : 50,
                             "desc" : "The precentage of members vote nedded for throw a Member from an Action.",
                             "proposals" : [ ]
                     },
                     "MinCommittee" : {
+                            "type" : "MinC",
                             "name" : "MinCommittee",
                             "value" : 2,
                             "desc" : "The Minimun size of an Action Committee.",
                             "proposals" : [ ]
                     },
                     "MaxAge" : {
+                            "type" : "MaxAge",
                             "name" : "MaxAge",
                             "value" : 2,
                             "desc" : "The Maximim 'OutThere' Proposal Age (in Pulses).",
                             "proposals" : [ ]
                     },
                     "Name" : {
+                            "type" : "Name",
                             "name" : "Name",
                             "value" : "No Name",
                             "desc" : "The Communitty Name.",
