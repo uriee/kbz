@@ -36,7 +36,7 @@ var db_find = function(collection,where,s){
   var d = Q.defer(),
       select = {};
   if(s) {select = s;}
-  col = eval("db."+collection);
+  col = db[collection];
   col.find(where,select,function(err,data) {
     console.log("Find output:",collection,data);
     if(err) {console.log("db_find e:",collection,err); d.reject(err);}
@@ -49,7 +49,7 @@ var db_findOne = function(collection,id,select){
   console.log("In FindOne :",collection,id,collections.indexOf(collection) === -1);
   if(collections.indexOf(collection) === -1) {d.reject("db_findOne not a valid collection:"+collection);}
   var d = Q.defer(),
-  col = eval("db."+collection);
+  col = db[collection];
   if(id) {
     col.findOne({'_id' : id},select || {},function(err,data) {
           console.log("findone output:",collection,data._id);
@@ -64,7 +64,7 @@ var db_findAndModify = function(collection,query,update){
   console.log("In db_findAndModify",collection,query,update);
   if(collections.indexOf(collection) == -1) {throw new Error("db_findAndModify not a valid collection");}
   var d = Q.defer();
-  col = eval("db."+collection);
+  col = db[collection];
   col.findAndModify({
     query : query ,
     update : update ,
@@ -80,7 +80,7 @@ var db_updateOne = function(collection,id,update){
   var d = Q.defer();
   console.log("db_updateOne:",collection,id,update);
   if(collections.indexOf(collection) === -1 || !id || !update) console.log("db_updateOne: wrong parameters",collection,id,update);
-  col = eval("db."+collection);
+  col = db[collection];
   col.update({'_id' : id},update,{multi : false},function(err,data) {
     console.log("db_updateOne data:",collection,id,data,err);
     if(err) {console.log("db+updateOne e:",collection,err);d.reject(err);}
@@ -93,7 +93,7 @@ var db_update = function(collection,where,update){
   console.log("db_update:",collection,where,update);
   if(collections.indexOf(collection) == -1) {throw new Error("db_update not a valid collection");}
   var d = Q.defer();
-  col = eval("db."+collection);
+  col = db[collection];
   col.update(where,update,{multi : true},function(err,data) {
     console.log("db_update:",collection,where,data,err);
     if(err) {console.log("db_update e:",collection,err);d.reject(err);}
@@ -106,7 +106,7 @@ var db_insert = function(collection,obj){
   console.log("db_insert:",collection);
   if(collections.indexOf(collection) == -1) {throw new error("db_insert not a valid collection");}
   var d = Q.defer(),
-      col = eval("db."+collection);
+      col = db[collection];
   col.insert(obj,function(err,data) {
     if(err) {console.log("db_insert e:",collection,err);d.reject(err);}
     else d.resolve(data);
@@ -118,7 +118,7 @@ var db_save = function(collection,obj){
   console.log("db_save",collection);
   if(collections.indexOf(collection) == -1) {throw new error("db_save not a valid collection");}
   var d = Q.defer();
-  col = eval("db."+collection);
+  col = db[collection];
   col.save(obj,function(err,data) {
     if(err) {console.log("db_save e:",err);d.reject(err);}
     else d.resolve(data);
@@ -529,7 +529,7 @@ var ExecuteOnTheAir = function(OnTheAir,variables){
     .then(function(proposal) {
       console.log("IN ExecuteOnTheAir proposal3:",proposal);
       type = proposal.type;
-      var variable = eval("variables."+type);
+      var variable = variables[type];
       console.log("IN ExecuteOnTheAir proposal4:",proposal.votes,variable.value);
       if(proposal.votes.pro/(proposal.votes.against + proposal.votes.pro)*100 >= variable.value){ /*proposal had passed*/
         console.log("approved ",type);
