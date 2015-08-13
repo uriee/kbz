@@ -22,9 +22,7 @@ var mongoUri = 'mongodb://localhost:3001/meteor',
         "RS": "Replace Statement",
         "CV": "Change Variable",
         "NA": "New Action",
-        "CA": "Cancel Action",
         "CM": "Committee Member",
-        "OC": "Out Of Committee"
     };
 // sudo mongod --profile=1 --slowms=1 --fork --logpath /var/log/mongodb/mongodb.log --logappend
 //db.setProfilingLevel(2,0,1)
@@ -447,10 +445,7 @@ var CreateProposal = function(kbz_id, initiator, title, body, type, uniq) {
     if (type == "NA") {
         Proposal.actionname = uniq.actionname;
     }
-    if (type == "CA") {
-        Proposal.action_id = uniq.action_id;
-    }
-    if (type == "CM" || type == "OC") {
+    if (type == "CM") {
         Proposal.member_id = uniq.member_id;
         Proposal.action_id = uniq.action_id;
     }
@@ -885,10 +880,6 @@ var ExecuteVertic = function(proposal) {
         CreateMember(proposal.kbz_id, proposal.initiator, proposal._id)
             .then(d.resolve);
     }
-    if (proposal.type == "EM" || proposal.type == "OC") {
-        RemoveMember(proposal.member_id, 1)
-            .then(d.resolve);
-    }
     if (proposal.type == "NS") {
         CreateStatement(proposal.kbz_id, proposal.statement, proposal._id)
             .then(d.resolve).fail(console.log);
@@ -921,21 +912,6 @@ var ExecuteVertic = function(proposal) {
     if (proposal.type == "NA") {
         CreateAction(proposal.kbz_id, proposal._id, proposal.action_name)
             .then(d.resolve);
-    }
-    if (proposal.type == "CA") {
-        db_updateOne('kbz', proposal.action_id, {
-                $set: {
-                    "status": 0
-                }
-            })
-            .then(db_updateOne('kbz', proposal.kbz_id, {
-                $pull: {
-                    "actions.live": proposal.action_id
-                },
-                $push: {
-                    "actions.past": proposal.action_id
-                }
-            }).then(d.resolve));
     }
     if (proposal.type == "CM") {
         CreateCommitteeMember(proposal.action_id, proposal.member_id, proposal._id)
@@ -998,14 +974,6 @@ var vars = {},
         "PulseSupport(vars.kbz._id,vars.m[2]._id).then(console.log, console.error);",
         "PulseSupport(vars.kbz._id,vars.m[1]._id).then(console.log, console.error);",
         "db_find('members',{'type' : 2 , 'status' : 1}).then(function(members){vars.m2 = members;});",
-        "CreateProposal(vars.kbz._id,vars.m[0]._id,'throw out','let him out','OC',{member_id : vars.m2[0]._id}).then(function(p13){vars.p13 = p13}).fail(console.log);",
-        "CreateProposal(vars.kbz._id,vars.m[0]._id,'End Action','let it end','CA',{action_id : vars.kbz.actions.live[0]}).then(function(p15){vars.p15 = p15}).fail(console.log);",
-        "Support(vars.kbz._id,vars.p15._id,vars.m[0]._id).then(console.log, console.error);",
-        "Support(vars.kbz._id,vars.p13._id,vars.m[0]._id).then(console.log, console.error);",
-        "PulseSupport(vars.kbz._id,vars.m[0]._id).then(console.log, console.error);",
-        "Vote(vars.p15._id,vars.m[0]._id,1).then(console.log, console.error);",
-        "Vote(vars.p13._id,vars.m[0]._id,1).then(console.log, console.error);",
-        "PulseSupport(vars.kbz._id,vars.m[0]._id).then(console.log, console.error);",
     ];
 
 function run(cmd) {
@@ -1177,13 +1145,6 @@ exports.init = function() {
             "desc": "The precentage of members vote nedded to accept a new Action.",
             "proposals": []
         },
-        "CA": {
-            "type": "CA",
-            "name": "Cancel Action",
-            "value": 60,
-            "desc": "The precentage of members vote nedded to Cancel Action.",
-            "proposals": []
-        },
         "RS": {
             "type": "RS",
             "name": "Replace Statement",
@@ -1196,13 +1157,6 @@ exports.init = function() {
             "name": "Committee Member",
             "value": 50,
             "desc": "The precentage of members vote nedded for assigning a Member to an Action.",
-            "proposals": []
-        },
-        "OC": {
-            "type": "OC",
-            "name": "Out Of Committee",
-            "value": 50,
-            "desc": "The precentage of members vote nedded for throw a Member from an Action.",
             "proposals": []
         },
         "MinCommittee": {
@@ -1226,5 +1180,12 @@ exports.init = function() {
             "desc": "The Communitty Name.",
             "proposals": []
         }
+        "Status": {
+            "type": "Status",
+            "name": "Status",
+            "value": "Alive",
+            "desc": "The Communitty Status.",
+            "proposals": []
+        }        
     });
 };
